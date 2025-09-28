@@ -1,0 +1,37 @@
+name = "reading-assistant"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# KV Storage Configuration
+kv_namespaces = [
+  { binding = "READING_ASSISTANT_KV", id = "66d15bbd66e24f96a0d60875530bf7f9" }
+]
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+STORAGE_TYPE = "kv"
+
+# Assets configuration for static files
+[assets]
+directory = "./build"
+binding = "ASSETS"
+
+# Development configuration
+[env.preview]
+name = "reading-assistant-preview"
+kv_namespaces = [
+  { binding = "READING_ASSISTANT_KV", id = "66d15bbd66e24f96a0d60875530bf7f9" }
+]
+
+[env.preview.vars]
+ENVIRONMENT = "development"
+STORAGE_TYPE = "kv"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Upload configuration
+[build.upload]
+format = "service-worker"

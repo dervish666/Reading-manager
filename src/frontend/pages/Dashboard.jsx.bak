@@ -1,0 +1,384 @@
+/**
+ * Dashboard Page
+ * Main overview page showing reading statistics and recent activity
+ */
+
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Chip,
+  LinearProgress,
+  Button
+} from '@mui/material';
+import {
+  School as SchoolIcon,
+  MenuBook as MenuBookIcon,
+  TrendingUp as TrendingUpIcon,
+  EmojiEvents as EmojiEventsIcon,
+  Visibility as VisibilityIcon,
+  Person as PersonIcon
+} from '@mui/icons-material';
+import { useApp } from '../contexts/AppContext';
+
+function Dashboard() {
+  const navigate = useNavigate();
+  const { state } = useApp();
+
+  const { students, sessions, books, classes } = state;
+
+  // Calculate statistics
+  const totalStudents = students.length;
+  const totalSessions = filteredSessions.length;
+  const totalBooks = books.length;
+  const totalClasses = classes.length;
+
+  // Recent sessions (last 5)
+  const recentSessions = filteredSessions
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  // Students needing attention (haven't read in configured days)
+  const settings = state.settings;
+  const needsAttentionDays = settings?.readingStatusSettings?.needsAttentionDays || 14;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - needsAttentionDays);
+
+  const studentsNeedingAttention = students.filter(student => {
+    if (!student.lastReadDate) return true;
+    return new Date(student.lastReadDate) < cutoffDate;
+  });
+
+  // Reading level distribution
+  const readingLevelStats = students.reduce((acc, student) => {
+    const level = student.readingLevel || 'Not Set';
+    acc[level] = (acc[level] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Recent activity summary
+  const today = new Date().toDateString();
+  const todaysSessions = sessions.filter(session =>
+    new Date(session.date).toDateString() === today
+  ).length;
+
+  const StatCard = ({ title, value, icon, color = 'primary', subtitle }) => (
+    <Card>
+      <CardContent>
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box>
+            <Typography color="textSecondary" gutterBottom variant="h6">
+              {title}
+            </Typography>
+            <Typography variant="h4" component="div" color={`${color}.main`}>
+              {value}
+            </Typography>
+            {subtitle && (
+              <Typography color="textSecondary" variant="body2">
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+          <Avatar sx={{ bgcolor: `${color}.main`, width: 56, height: 56 }}>
+            {icon}
+          </Avatar>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getEnvironmentColor = (environment) => {
+    return environment === 'school' ? 'primary' : 'secondary';
+  };
+
+  return (
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Dashboard
+      </Typography>
+
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Total Students"
+            value={totalStudents}
+            icon={<SchoolIcon />}
+            color="primary"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Reading Sessions"
+            value={totalSessions}
+            icon={<MenuBookIcon />}
+            color="success"
+            subtitle={`${todaysSessions} today`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Books Available"
+            value={totalBooks}
+            icon={<EmojiEventsIcon />}
+            color="warning"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Classes"
+            value={totalClasses}
+            icon={<PersonIcon />}
+            color="info"
+          />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3}>
+        {/* Students Needing Attention */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Typography variant="h6">
+                  Students Needing Attention
+                </Typography>
+                <Chip
+                  label={`${studentsNeedingAttention.length} students`}
+                  color="warning"
+                  variant="outlined"
+                />
+              </Box>
+              {studentsNeedingAttention.length > 0 ? (
+                <List dense>
+                  {studentsNeedingAttention.slice(0, 5).map((student) => (
+                    <ListItem key={student.id}>
+                      <ListItemAvatar>
+                        <Avatar>
+                          <SchoolIcon />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={student.name}
+                        secondary={
+                          student.lastReadDate
+                            ? `Last read: ${formatDate(student.lastReadDate)}`
+                            : 'Never read'
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          edge="end"
+                          onClick={() => navigate(`/students/${student.id}`)}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                  {studentsNeedingAttention.length > 5 && (
+                    <ListItem>
+                      <ListItemText
+                        primary={`... and ${studentsNeedingAttention.length - 5} more`}
+                        primaryTypographyProps={{ color: 'textSecondary' }}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              ) : (
+                <Typography color="textSecondary" align="center" py={2}>
+                  All students are up to date! 🎉
+                </Typography>
+              )}
+              <Box mt={2}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => navigate('/students')}
+                >
+                  View All Students
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Recent Sessions */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                <Typography variant="h6">
+                  Recent Reading Sessions
+                </Typography>
+                <Chip
+                  label={`${recentSessions.length} recent`}
+                  color="success"
+                  variant="outlined"
+                />
+              </Box>
+              {recentSessions.length > 0 ? (
+                <List dense>
+                  {recentSessions.map((session) => (
+                    <ListItem key={session.id}>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: getEnvironmentColor(session.environment) }}>
+                          {session.environment === 'school' ? 'S' : 'H'}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={`${session.bookTitle} by ${session.author}`}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" component="span">
+                              {students.find(s => s.id === session.studentId)?.name}
+                            </Typography>
+                            <br />
+                            <Typography variant="caption" color="textSecondary">
+                              {formatDate(session.date)} • {session.assessment}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <Chip
+                          label={session.environment}
+                          size="small"
+                          color={getEnvironmentColor(session.environment)}
+                          variant="outlined"
+                        />
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="textSecondary" align="center" py={2}>
+                  No reading sessions recorded yet
+                </Typography>
+              )}
+              <Box mt={2}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => navigate('/sessions')}
+                >
+                  View All Sessions
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Reading Level Distribution */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Reading Level Distribution
+              </Typography>
+              {Object.keys(readingLevelStats).length > 0 ? (
+                <Box>
+                  {Object.entries(readingLevelStats).map(([level, count]) => (
+                    <Box key={level} mb={2}>
+                      <Box display="flex" justifyContent="space-between" mb={1}>
+                        <Typography variant="body2">
+                          {level}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {count} students
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(count / totalStudents) * 100}
+                        sx={{ height: 8, borderRadius: 4 }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Typography color="textSecondary" align="center" py={2}>
+                  No reading levels set yet
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Quick Actions
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<SchoolIcon />}
+                    onClick={() => navigate('/students?action=new')}
+                  >
+                    Add Student
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<MenuBookIcon />}
+                    onClick={() => navigate('/sessions?action=new')}
+                  >
+                    Log Session
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<EmojiEventsIcon />}
+                    onClick={() => navigate('/books?action=new')}
+                  >
+                    Add Book
+                  </Button>
+                </Grid>
+                <Grid item xs={6}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    startIcon={<TrendingUpIcon />}
+                    onClick={() => navigate('/recommendations')}
+                  >
+                    Get Recommendations
+                  </Button>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+}
+
+export default Dashboard;
