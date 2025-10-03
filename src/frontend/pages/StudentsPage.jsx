@@ -189,13 +189,13 @@ function StudentsPage() {
 
   const handleBulkImportOpen = () => {
     setBulkImportDialog(true);
-    setSelectedClassFilterForImport('');
+    setSelectedClassForImport('');
   };
 
   const handleBulkImportClose = () => {
     setBulkImportDialog(false);
     setBulkImportText('');
-    setSelectedClassFilterForImport('');
+    setSelectedClassForImport('');
   };
 
   const handleBulkImport = async () => {
@@ -249,7 +249,7 @@ function StudentsPage() {
       if (name) {
         students.push({
           name: name,
-          classId: state.selectedClassFilterForImport || null,
+          classId: selectedClassForImport || null,
           readingLevel: null,
           preferences: {
             favoriteGenreIds: [],
@@ -456,8 +456,9 @@ function StudentsPage() {
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

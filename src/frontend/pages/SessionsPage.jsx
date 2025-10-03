@@ -459,8 +459,9 @@ function SessionsPage() {
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

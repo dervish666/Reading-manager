@@ -691,8 +691,9 @@ function BooksPage() {
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
