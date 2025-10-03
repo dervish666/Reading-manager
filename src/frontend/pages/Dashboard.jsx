@@ -20,7 +20,8 @@ import {
   IconButton,
   Chip,
   LinearProgress,
-  Button
+  Button,
+  useTheme
 } from '@mui/material';
 import {
   School as SchoolIcon,
@@ -35,6 +36,7 @@ import { useApp } from '../contexts/AppContext';
 function Dashboard() {
   const navigate = useNavigate();
   const { state } = useApp();
+  const theme = useTheme();
 
   const { students, sessions, books, classes } = state;
 
