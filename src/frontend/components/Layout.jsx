@@ -78,75 +78,87 @@ function Layout({ children }) {
   };
 
   const drawer = (
-    <Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          px: [1],
+          px: [2],
+          py: 2,
+          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
         }}
       >
-        <Typography variant="h6" noWrap component="div" color="primary">
+        <Typography variant="h6" noWrap component="div" color="primary" fontWeight={600}>
           Reading Assistant
         </Typography>
         {isMobile && (
-          <IconButton onClick={handleDrawerToggle}>
+          <IconButton onClick={handleDrawerToggle} sx={{ ml: 1 }}>
             <ChevronLeftIcon />
           </IconButton>
         )}
       </Toolbar>
-      <Divider />
-      <List>
-        {navigationItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: theme.palette.primary.main,
-                  color: 'white',
-                  '& .MuiListItemIcon-root': {
-                    color: 'white',
+      <Box sx={{ flexGrow: 1, overflow: 'auto', py: 1 }}>
+        <List sx={{ px: 1 }}>
+          {navigationItems.map((item) => (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => handleNavigation(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    color: theme.palette.primary.main,
+                    '& .MuiListItemIcon-root': {
+                      color: theme.palette.primary.main,
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    },
                   },
                   '&:hover': {
-                    backgroundColor: theme.palette.primary.dark,
+                    backgroundColor: 'rgba(99, 102, 241, 0.05)',
                   },
-                },
-              }}
-            >
-              <ListItemIcon>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    fontWeight: location.pathname === item.path ? 600 : 400
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
 
-       {/* Class Filter */}
-       <Box sx={{ p: 2 }}>
-         <FormControl fullWidth size="small">
-           <InputLabel id="class-filter-label">Filter by Class</InputLabel>
-           <Select
-             labelId="class-filter-label"
-             value={state.selectedClassFilter}
-             onChange={(e) => setSelectedClassFilter && setSelectedClassFilter(e.target.value)}
-             label="Filter by Class"
-           >
-             <MenuItem value="">
-               <em>All Classes</em>
-             </MenuItem>
-             {state.classes.map((cls) => (
-               <MenuItem key={cls.id} value={cls.id}>
-                 {cls.name}
+         {/* Class Filter */}
+         <Box sx={{ px: 2, py: 2 }}>
+           <FormControl fullWidth size="small">
+             <InputLabel id="class-filter-label">Filter by Class</InputLabel>
+             <Select
+               labelId="class-filter-label"
+               value={state.selectedClassFilter}
+               onChange={(e) => setSelectedClassFilter && setSelectedClassFilter(e.target.value)}
+               label="Filter by Class"
+             >
+               <MenuItem value="">
+                 <em>All Classes</em>
                </MenuItem>
-             ))}
-           </Select>
-         </FormControl>
-       </Box>
-       <Divider />
+               {state.classes.map((cls) => (
+                 <MenuItem key={cls.id} value={cls.id}>
+                   {cls.name}
+                 </MenuItem>
+               ))}
+             </Select>
+           </FormControl>
+         </Box>
+      </Box>
     </Box>
   );
 
@@ -157,9 +169,12 @@ function Layout({ children }) {
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
+          backgroundColor: '#ffffff',
+          color: '#1e293b',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: '64px' }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -169,7 +184,7 @@ function Layout({ children }) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" fontWeight={600}>
             {navigationItems.find(item => item.path === location.pathname)?.text || 'Reading Assistant'}
           </Typography>
         </Toolbar>
@@ -177,7 +192,14 @@ function Layout({ children }) {
 
       <Box
         component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+        sx={{
+          width: { md: drawerWidth },
+          flexShrink: { md: 0 },
+          '& .MuiDrawer-paper': {
+            backgroundColor: '#ffffff',
+            borderRight: '1px solid rgba(0, 0, 0, 0.05)',
+          }
+        }}
         aria-label="navigation"
       >
         <Drawer
@@ -212,7 +234,9 @@ function Layout({ children }) {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: 8
+          mt: 8,
+          backgroundColor: '#f8fafc',
+          minHeight: '100vh'
         }}
       >
         {children}
@@ -223,8 +247,16 @@ function Layout({ children }) {
           aria-label="add"
           sx={{
             position: 'fixed',
-            bottom: 16,
-            right: 16,
+            bottom: 24,
+            right: 24,
+            width: 56,
+            height: 56,
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: '0 6px 16px rgba(99, 102, 241, 0.4)',
+            },
           }}
           onClick={() => {
             // Navigate to appropriate "add" page based on current route

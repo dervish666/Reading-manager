@@ -85,27 +85,45 @@ function Dashboard() {
   ).length;
 
   const StatCard = ({ title, value, icon, color = 'primary', subtitle }) => (
-    <Card>
-      <CardContent>
+    <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <CardContent sx={{ p: 3 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography color="textSecondary" gutterBottom variant="h6">
+            <Typography color="textSecondary" gutterBottom variant="subtitle2" fontWeight={500}>
               {title}
             </Typography>
-            <Typography variant="h4" component="div" color={`${color}.main`}>
+            <Typography variant="h3" component="div" color={`${color}.main`} fontWeight={700}>
               {value}
             </Typography>
             {subtitle && (
-              <Typography color="textSecondary" variant="body2">
+              <Typography color="textSecondary" variant="body2" sx={{ mt: 0.5 }}>
                 {subtitle}
               </Typography>
             )}
           </Box>
-          <Avatar sx={{ bgcolor: `${color}.main`, width: 56, height: 56 }}>
+          <Avatar
+            sx={{
+              bgcolor: `${color}.main`,
+              width: 64,
+              height: 64,
+              boxShadow: `0 4px 12px ${theme.palette[color].main}20`,
+            }}
+          >
             {icon}
           </Avatar>
         </Box>
       </CardContent>
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 4,
+          backgroundColor: `${color}.main`,
+          opacity: 0.8,
+        }}
+      />
     </Card>
   );
 
@@ -167,39 +185,51 @@ function Dashboard() {
       <Grid container spacing={3}>
         {/* Students Needing Attention */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+                <Typography variant="h6" fontWeight={600}>
                   Students Needing Attention
                 </Typography>
                 <Chip
                   label={`${studentsNeedingAttention.length} students`}
                   color="warning"
                   variant="outlined"
+                  size="small"
                 />
               </Box>
               {studentsNeedingAttention.length > 0 ? (
-                <List dense>
+                <List sx={{ p: 0 }}>
                   {studentsNeedingAttention.slice(0, 5).map((student) => (
-                    <ListItem key={student.id}>
+                    <ListItem
+                      key={student.id}
+                      sx={{
+                        px: 0,
+                        borderRadius: 2,
+                        mb: 1,
+                        '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.02)' }
+                      }}
+                    >
                       <ListItemAvatar>
-                        <Avatar>
-                          <SchoolIcon />
+                        <Avatar sx={{ bgcolor: 'warning.main', width: 40, height: 40 }}>
+                          <SchoolIcon fontSize="small" />
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={student.name}
+                        primaryTypographyProps={{ fontWeight: 500 }}
                         secondary={
                           student.lastReadDate
                             ? `Last read: ${formatDate(student.lastReadDate)}`
                             : 'Never read'
                         }
+                        secondaryTypographyProps={{ fontSize: '0.875rem' }}
                       />
                       <ListItemSecondaryAction>
                         <IconButton
                           edge="end"
                           onClick={() => navigate(`/students/${student.id}`)}
+                          sx={{ '&:hover': { color: 'warning.main' } }}
                         >
                           <VisibilityIcon />
                         </IconButton>
@@ -207,24 +237,27 @@ function Dashboard() {
                     </ListItem>
                   ))}
                   {studentsNeedingAttention.length > 5 && (
-                    <ListItem>
+                    <ListItem sx={{ px: 0 }}>
                       <ListItemText
                         primary={`... and ${studentsNeedingAttention.length - 5} more`}
-                        primaryTypographyProps={{ color: 'textSecondary' }}
+                        primaryTypographyProps={{ color: 'textSecondary', fontSize: '0.875rem' }}
                       />
                     </ListItem>
                   )}
                 </List>
               ) : (
-                <Typography color="textSecondary" align="center" py={2}>
-                  All students are up to date! 🎉
-                </Typography>
+                <Box textAlign="center" py={3}>
+                  <Typography color="textSecondary" variant="body1">
+                    All students are up to date! 🎉
+                  </Typography>
+                </Box>
               )}
-              <Box mt={2}>
+              <Box mt={3}>
                 <Button
                   variant="outlined"
                   fullWidth
                   onClick={() => navigate('/students')}
+                  sx={{ py: 1.5 }}
                 >
                   View All Students
                 </Button>
@@ -235,29 +268,43 @@ function Dashboard() {
 
         {/* Recent Sessions */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                <Typography variant="h6">
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+                <Typography variant="h6" fontWeight={600}>
                   Recent Reading Sessions
                 </Typography>
                 <Chip
                   label={`${recentSessions.length} recent`}
                   color="success"
                   variant="outlined"
+                  size="small"
                 />
               </Box>
               {recentSessions.length > 0 ? (
-                <List dense>
+                <List sx={{ p: 0 }}>
                   {recentSessions.map((session) => (
-                    <ListItem key={session.id}>
+                    <ListItem
+                      key={session.id}
+                      sx={{
+                        px: 0,
+                        borderRadius: 2,
+                        mb: 1,
+                        '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.02)' }
+                      }}
+                    >
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: getEnvironmentColor(session.environment) }}>
+                        <Avatar sx={{ bgcolor: getEnvironmentColor(session.environment), width: 40, height: 40 }}>
                           {session.environment === 'school' ? 'S' : 'H'}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={`${session.bookTitle} by ${session.author}`}
+                        primaryTypographyProps={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          noWrap: true
+                        }}
                         secondary={
                           <Box>
                             <Typography variant="body2" component="span">
@@ -282,15 +329,18 @@ function Dashboard() {
                   ))}
                 </List>
               ) : (
-                <Typography color="textSecondary" align="center" py={2}>
-                  No reading sessions recorded yet
-                </Typography>
+                <Box textAlign="center" py={3}>
+                  <Typography color="textSecondary" variant="body1">
+                    No reading sessions recorded yet
+                  </Typography>
+                </Box>
               )}
-              <Box mt={2}>
+              <Box mt={3}>
                 <Button
                   variant="outlined"
                   fullWidth
                   onClick={() => navigate('/sessions')}
+                  sx={{ py: 1.5 }}
                 >
                   View All Sessions
                 </Button>
@@ -301,17 +351,17 @@ function Dashboard() {
 
         {/* Reading Level Distribution */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Reading Level Distribution
               </Typography>
               {Object.keys(readingLevelStats).length > 0 ? (
                 <Box>
                   {Object.entries(readingLevelStats).map(([level, count]) => (
-                    <Box key={level} mb={2}>
+                    <Box key={level} mb={2.5}>
                       <Box display="flex" justifyContent="space-between" mb={1}>
-                        <Typography variant="body2">
+                        <Typography variant="body2" fontWeight={500}>
                           {level}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
@@ -321,15 +371,24 @@ function Dashboard() {
                       <LinearProgress
                         variant="determinate"
                         value={(count / totalStudents) * 100}
-                        sx={{ height: 8, borderRadius: 4 }}
+                        sx={{
+                          height: 10,
+                          borderRadius: 5,
+                          backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                          '& .MuiLinearProgress-bar': {
+                            borderRadius: 5,
+                          }
+                        }}
                       />
                     </Box>
                   ))}
                 </Box>
               ) : (
-                <Typography color="textSecondary" align="center" py={2}>
-                  No reading levels set yet
-                </Typography>
+                <Box textAlign="center" py={3}>
+                  <Typography color="textSecondary" variant="body1">
+                    No reading levels set yet
+                  </Typography>
+                </Box>
               )}
             </CardContent>
           </Card>
@@ -337,9 +396,9 @@ function Dashboard() {
 
         {/* Quick Actions */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom fontWeight={600}>
                 Quick Actions
               </Typography>
               <Grid container spacing={2}>
@@ -349,6 +408,7 @@ function Dashboard() {
                     fullWidth
                     startIcon={<SchoolIcon />}
                     onClick={() => navigate('/students?action=new')}
+                    sx={{ py: 1.5, height: '100%' }}
                   >
                     Add Student
                   </Button>
@@ -359,6 +419,7 @@ function Dashboard() {
                     fullWidth
                     startIcon={<MenuBookIcon />}
                     onClick={() => navigate('/sessions?action=new')}
+                    sx={{ py: 1.5, height: '100%' }}
                   >
                     Log Session
                   </Button>
@@ -369,6 +430,7 @@ function Dashboard() {
                     fullWidth
                     startIcon={<EmojiEventsIcon />}
                     onClick={() => navigate('/books?action=new')}
+                    sx={{ py: 1.5, height: '100%' }}
                   >
                     Add Book
                   </Button>
@@ -379,6 +441,7 @@ function Dashboard() {
                     fullWidth
                     startIcon={<TrendingUpIcon />}
                     onClick={() => navigate('/recommendations')}
+                    sx={{ py: 1.5, height: '100%' }}
                   >
                     Get Recommendations
                   </Button>
