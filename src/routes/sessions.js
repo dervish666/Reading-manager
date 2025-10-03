@@ -19,7 +19,14 @@ const app = new Hono();
 // GET /api/sessions - List all sessions
 app.get('/', async (c) => {
   try {
-    const sessions = await getSessions(c.env.READING_ASSISTANT_KV);
+    const { sortBy, sortOrder } = c.req.query();
+    let sessions = await getSessions(c.env.READING_ASSISTANT_KV);
+    
+    // Apply server-side sorting if requested
+    if (sortBy && sortOrder) {
+      sessions = sortSessions(sessions, sortBy, sortOrder);
+    }
+    
     return c.json({ data: sessions });
   } catch (error) {
     console.error('Error fetching sessions:', error);
@@ -342,5 +349,53 @@ app.get('/student/:id', async (c) => {
     }, 500);
   }
 });
+
+// Helper function to sort sessions
+function sortSessions(sessions, sortBy, sortOrder) {
+  const sorted = [...sessions];
+  
+  sorted.sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'bookTitle':
+        aValue = a.bookTitle.toLowerCase();
+        bValue = b.bookTitle.toLowerCase();
+        break;
+      case 'studentId':
+        aValue = a.studentId || '';
+        bValue = b.studentId || '';
+        break;
+      case 'date':
+        aValue = new Date(a.date);
+        bValue = new Date(b.date);
+        break;
+      case 'environment':
+        aValue = a.environment || '';
+        bValue = b.environment || '';
+        break;
+      case 'assessment':
+        aValue = a.assessment.toLowerCase();
+        bValue = b.assessment.toLowerCase();
+        break;
+      case 'bookPreference':
+        aValue = a.bookPreference || '';
+        bValue = b.bookPreference || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (aValue < bValue) {
+      return sortOrder === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortOrder === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+  
+  return sorted;
+}
 
 export default app;

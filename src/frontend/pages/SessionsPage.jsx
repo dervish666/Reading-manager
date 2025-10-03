@@ -3,7 +3,7 @@
  * Manage and track reading sessions
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -41,7 +41,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -56,6 +57,8 @@ import {
   ThumbDown as ThumbDownIcon
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
+import SortableTableHeader from '../components/SortableTableHeader';
+import { sortData, shouldUseServerSideSorting } from '../utils/sortingUtils';
 
 function SessionsPage() {
   const navigate = useNavigate();
@@ -83,19 +86,55 @@ function SessionsPage() {
     bookPreference: ''
   });
 
-  // Filter sessions
-  const filteredSessions = sessions.filter(session => {
-    const matchesSearch = searchTerm === '' ||
-      session.bookTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      students.find(s => s.id === session.studentId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
+  // Handle sorting
+  const handleSort = async (column, direction) => {
+    const { sorting } = state;
+    
+    // Update sorting state
+    api.setSort('sessions', column, direction);
+    
+    // Determine if we need server-side sorting
+    const useServerSide = shouldUseServerSideSorting(sessions.length);
+    
+    if (useServerSide && direction) {
+      // Use server-side sorting
+      try {
+        await api.getSessionsSorted(column, direction);
+      } catch (error) {
+        console.error('Error sorting sessions:', error);
+      }
+    }
+    // If client-side sorting, the useMemo below will handle it
+  };
 
-    const matchesStudent = !selectedStudent || session.studentId === selectedStudent;
-    const sessionStudent = students.find(s => s.id === session.studentId);
-    const matchesClass = !state.selectedClassFilter || sessionStudent?.classId === state.selectedClassFilter;
-    const matchesEnvironment = !selectedEnvironment || session.environment === selectedEnvironment;
+  // Filter and sort sessions
+  const processedSessions = useMemo(() => {
+    const { sorting } = state;
+    
+    // First filter sessions
+    let filtered = sessions.filter(session => {
+      const matchesSearch = searchTerm === '' ||
+        session.bookTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        students.find(s => s.id === session.studentId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesStudent && matchesEnvironment && matchesClass;
-  });
+      const matchesStudent = !selectedStudent || session.studentId === selectedStudent;
+      const sessionStudent = students.find(s => s.id === session.studentId);
+      const matchesClass = !state.selectedClassFilter || sessionStudent?.classId === state.selectedClassFilter;
+      const matchesEnvironment = !selectedEnvironment || session.environment === selectedEnvironment;
+
+      return matchesSearch && matchesStudent && matchesEnvironment && matchesClass;
+    });
+    
+    // Then sort if needed (client-side)
+    if (sorting.sessions.column && sorting.sessions.direction) {
+      const useServerSide = shouldUseServerSideSorting(sessions.length);
+      if (!useServerSide) {
+        filtered = sortData(filtered, sorting.sessions.column, sorting.sessions.direction);
+      }
+    }
+    
+    return filtered;
+  }, [sessions, searchTerm, selectedStudent, selectedEnvironment, state.selectedClassFilter, students, state.sorting.sessions]);
 
   const handleCreateSession = () => {
     setEditingSession(null);
@@ -278,18 +317,66 @@ function SessionsPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Book</TableCell>
-              <TableCell>Student</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Environment</TableCell>
-              <TableCell>Assessment</TableCell>
-              <TableCell>Rating</TableCell>
+              <SortableTableHeader
+                column="bookTitle"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Book
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="studentId"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Student
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="date"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Date
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="environment"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Environment
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="assessment"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Assessment
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="bookPreference"
+                currentSort={state.sorting.sessions}
+                onSort={handleSort}
+              >
+                Rating
+              </SortableTableHeader>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredSessions.map((session) => (
-              <TableRow key={session.id}>
+            {state.sortingLoading.sessions ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" gap={2}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" color="textSecondary">
+                      Sorting sessions...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              processedSessions.map((session) => (
+                <TableRow key={session.id}>
                 <TableCell>
                   <Box display="flex" alignItems="center">
                     <Avatar sx={{ bgcolor: getEnvironmentColor(session.environment), mr: 2, width: 32, height: 32 }}>
@@ -378,7 +465,7 @@ function SessionsPage() {
         </Table>
       </TableContainer>
 
-      {filteredSessions.length === 0 && (
+      {processedSessions.length === 0 && (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <MenuBookIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />

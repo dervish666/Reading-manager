@@ -18,7 +18,14 @@ const app = new Hono();
 // GET /api/books - List all books
 app.get('/', async (c) => {
   try {
-    const books = await getBooks(c.env.READING_ASSISTANT_KV);
+    const { sortBy, sortOrder } = c.req.query();
+    let books = await getBooks(c.env.READING_ASSISTANT_KV);
+    
+    // Apply server-side sorting if requested
+    if (sortBy && sortOrder) {
+      books = sortBooks(books, sortBy, sortOrder);
+    }
+    
     return c.json({ data: books });
   } catch (error) {
     console.error('Error fetching books:', error);
@@ -711,5 +718,45 @@ app.post('/batch-import', async (c) => {
     }, 500);
   }
 });
+
+// Helper function to sort books
+function sortBooks(books, sortBy, sortOrder) {
+  const sorted = [...books];
+  
+  sorted.sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'title':
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+        break;
+      case 'author':
+        aValue = (a.author || '').toLowerCase();
+        bValue = (b.author || '').toLowerCase();
+        break;
+      case 'readingLevel':
+        aValue = a.readingLevel || '';
+        bValue = b.readingLevel || '';
+        break;
+      case 'ageRange':
+        aValue = a.ageRange || '';
+        bValue = b.ageRange || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (aValue < bValue) {
+      return sortOrder === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortOrder === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+  
+  return sorted;
+}
 
 export default app;
