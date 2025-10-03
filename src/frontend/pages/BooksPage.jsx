@@ -3,7 +3,7 @@
  * Manage book library
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -34,7 +34,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,6 +47,8 @@ import {
   FileUpload as ImportIcon
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
+import SortableTableHeader from '../components/SortableTableHeader';
+import { sortData, shouldUseServerSideSorting } from '../utils/sortingUtils';
 
 function BooksPage() {
   const { state, api } = useApp();
@@ -108,16 +111,52 @@ function BooksPage() {
     }
   }, [api, books.length, genres.length]);
 
-  // Filter books
-  const filteredBooks = books.filter(book => {
-    const matchesSearch =
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (book.author && book.author.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Handle sorting
+  const handleSort = async (column, direction) => {
+    const { sorting } = state;
+    
+    // Update sorting state
+    api.setSort('books', column, direction);
+    
+    // Determine if we need server-side sorting
+    const useServerSide = shouldUseServerSideSorting(books.length);
+    
+    if (useServerSide && direction) {
+      // Use server-side sorting
+      try {
+        await api.getBooksSorted(column, direction);
+      } catch (error) {
+        console.error('Error sorting books:', error);
+      }
+    }
+    // If client-side sorting, the useMemo below will handle it
+  };
 
-    const matchesGenre = !selectedGenre || book.genreIds.includes(selectedGenre);
+  // Filter and sort books
+  const processedBooks = useMemo(() => {
+    const { sorting } = state;
+    
+    // First filter books
+    let filtered = books.filter(book => {
+      const matchesSearch =
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (book.author && book.author.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return matchesSearch && matchesGenre;
-  });
+      const matchesGenre = !selectedGenre || book.genreIds.includes(selectedGenre);
+
+      return matchesSearch && matchesGenre;
+    });
+    
+    // Then sort if needed (client-side)
+    if (sorting.books.column && sorting.books.direction) {
+      const useServerSide = shouldUseServerSideSorting(books.length);
+      if (!useServerSide) {
+        filtered = sortData(filtered, sorting.books.column, sorting.books.direction);
+      }
+    }
+    
+    return filtered;
+  }, [books, searchTerm, selectedGenre, state.sorting.books]);
 
   const handleCreateBook = () => {
     setEditingBook(null);
@@ -538,17 +577,53 @@ function BooksPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Title</TableCell>
-              <TableCell>Author</TableCell>
-              <TableCell>Level</TableCell>
-              <TableCell>Age Range</TableCell>
+              <SortableTableHeader
+                column="title"
+                currentSort={state.sorting.books}
+                onSort={handleSort}
+              >
+                Title
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="author"
+                currentSort={state.sorting.books}
+                onSort={handleSort}
+              >
+                Author
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="readingLevel"
+                currentSort={state.sorting.books}
+                onSort={handleSort}
+              >
+                Level
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="ageRange"
+                currentSort={state.sorting.books}
+                onSort={handleSort}
+              >
+                Age Range
+              </SortableTableHeader>
               <TableCell>Genres</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredBooks.map((book) => (
-              <TableRow key={book.id}>
+            {state.sortingLoading.books ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" gap={2}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" color="textSecondary">
+                      Sorting books...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              processedBooks.map((book) => (
+                <TableRow key={book.id}>
                 <TableCell>
                   <Box display="flex" alignItems="center">
                     {book.coverImage ? (
@@ -616,13 +691,14 @@ function BooksPage() {
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {filteredBooks.length === 0 && (
+      {processedBooks.length === 0 && (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <BookIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />

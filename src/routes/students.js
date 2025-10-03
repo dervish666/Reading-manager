@@ -17,7 +17,14 @@ const app = new Hono();
 // GET /api/students - List all students
 app.get('/', async (c) => {
   try {
-    const students = await getStudents(c.env.READING_ASSISTANT_KV);
+    const { sortBy, sortOrder } = c.req.query();
+    let students = await getStudents(c.env.READING_ASSISTANT_KV);
+    
+    // Apply server-side sorting if requested
+    if (sortBy && sortOrder) {
+      students = sortStudents(students, sortBy, sortOrder);
+    }
+    
     return c.json({ data: students });
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -282,5 +289,45 @@ app.post('/bulk', async (c) => {
     }, 500);
   }
 });
+
+// Helper function to sort students
+function sortStudents(students, sortBy, sortOrder) {
+  const sorted = [...students];
+  
+  sorted.sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'name':
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case 'classId':
+        aValue = a.classId || '';
+        bValue = b.classId || '';
+        break;
+      case 'readingLevel':
+        aValue = a.readingLevel || '';
+        bValue = b.readingLevel || '';
+        break;
+      case 'lastReadDate':
+        aValue = a.lastReadDate ? new Date(a.lastReadDate) : new Date(0);
+        bValue = b.lastReadDate ? new Date(b.lastReadDate) : new Date(0);
+        break;
+      default:
+        return 0;
+    }
+    
+    if (aValue < bValue) {
+      return sortOrder === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortOrder === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+  
+  return sorted;
+}
 
 export default app;

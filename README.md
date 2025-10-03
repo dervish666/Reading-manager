@@ -2,6 +2,9 @@
 
 A comprehensive reading tracking system for primary school students with AI-powered book recommendations. Built with React, Material-UI, Cloudflare Workers, and KV storage.
 
+<img width="1491" height="979" alt="image" src="https://github.com/user-attachments/assets/5f46e2b6-ff53-4337-972e-7eaae7b58c6c" />
+
+
 ## Features
 
 ### Core Reading Management

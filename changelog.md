@@ -1,5 +1,10 @@
 # Changelog - Reading Assistant
 
+## [1.8.5] - 2025-10-03
+
+Updates to frontend.
+
+
 ## [1.8.0] - 2025-09-28
 
 ### ✨ **New Features**

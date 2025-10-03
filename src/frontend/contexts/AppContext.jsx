@@ -27,6 +27,29 @@ const initialState = {
     students: {},
     sessions: {},
     books: {}
+  },
+
+  // Sorting state
+  sorting: {
+    students: {
+      column: null,
+      direction: null
+    },
+    sessions: {
+      column: null,
+      direction: null
+    },
+    books: {
+      column: null,
+      direction: null
+    }
+  },
+
+  // Loading states for specific operations
+  sortingLoading: {
+    students: false,
+    sessions: false,
+    books: false
   }
 };
 
@@ -68,7 +91,12 @@ const ACTIONS = {
 
   // Filter actions
   SET_FILTER: 'SET_FILTER',
-  CLEAR_FILTERS: 'CLEAR_FILTERS'
+  CLEAR_FILTERS: 'CLEAR_FILTERS',
+
+  // Sorting actions
+  SET_SORT: 'SET_SORT',
+  CLEAR_SORT: 'CLEAR_SORT',
+  SET_SORTING_LOADING: 'SET_SORTING_LOADING'
 };
 
 // Reducer function
@@ -214,6 +242,39 @@ function appReducer(state, action) {
       return {
         ...state,
         filters: initialState.filters
+      };
+
+    case ACTIONS.SET_SORT:
+      return {
+        ...state,
+        sorting: {
+          ...state.sorting,
+          [action.entity]: {
+            column: action.payload.column,
+            direction: action.payload.direction
+          }
+        }
+      };
+
+    case ACTIONS.CLEAR_SORT:
+      return {
+        ...state,
+        sorting: {
+          ...state.sorting,
+          [action.entity]: {
+            column: null,
+            direction: null
+          }
+        }
+      };
+
+    case ACTIONS.SET_SORTING_LOADING:
+      return {
+        ...state,
+        sortingLoading: {
+          ...state.sortingLoading,
+          [action.entity]: action.payload
+        }
       };
 
     default:
@@ -627,6 +688,94 @@ export function AppProvider({ children }) {
 
     clearFilters() {
       dispatch({ type: ACTIONS.CLEAR_FILTERS });
+    },
+
+    // Sorting functions
+    setSort(entity, column, direction) {
+      dispatch({
+        type: ACTIONS.SET_SORT,
+        entity,
+        payload: { column, direction }
+      });
+    },
+
+    clearSort(entity) {
+      dispatch({
+        type: ACTIONS.CLEAR_SORT,
+        entity
+      });
+    },
+
+    setSortingLoading(entity, isLoading) {
+      dispatch({
+        type: ACTIONS.SET_SORTING_LOADING,
+        entity,
+        payload: isLoading
+      });
+    },
+
+    // Enhanced API functions with sorting support
+    async getStudentsSorted(sortBy = null, sortOrder = null) {
+      dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'students', payload: true });
+      try {
+        const params = new URLSearchParams();
+        if (sortBy && sortOrder) {
+          params.append('sortBy', sortBy);
+          params.append('sortOrder', sortOrder);
+        }
+        
+        const url = params.toString() ? `/students?${params.toString()}` : '/students';
+        const result = await apiRequest(url);
+        dispatch({ type: ACTIONS.SET_STUDENTS, payload: result.data });
+        return result.data;
+      } catch (error) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+        throw error;
+      } finally {
+        dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'students', payload: false });
+      }
+    },
+
+    async getSessionsSorted(sortBy = null, sortOrder = null) {
+      dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'sessions', payload: true });
+      try {
+        const params = new URLSearchParams();
+        if (sortBy && sortOrder) {
+          params.append('sortBy', sortBy);
+          params.append('sortOrder', sortOrder);
+        }
+        
+        const url = params.toString() ? `/sessions?${params.toString()}` : '/sessions';
+        const result = await apiRequest(url);
+        dispatch({ type: ACTIONS.SET_SESSIONS, payload: result.data });
+        return result.data;
+      } catch (error) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+        throw error;
+      } finally {
+        dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'sessions', payload: false });
+      }
+    },
+
+    async getBooksSorted(sortBy = null, sortOrder = null) {
+      dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'books', payload: true });
+      try {
+        const params = new URLSearchParams();
+        if (sortBy && sortOrder) {
+          params.append('sortBy', sortBy);
+          params.append('sortOrder', sortOrder);
+        }
+        
+        const url = params.toString() ? `/books?${params.toString()}` : '/books';
+        const result = await apiRequest(url);
+        dispatch({ type: ACTIONS.SET_BOOKS, payload: result.data });
+        return result.data;
+      } catch (error) {
+        dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+        throw error;
+      } finally {
+        dispatch({ type: ACTIONS.SET_SORTING_LOADING, entity: 'books', payload: false });
+      }
     }
   };
 

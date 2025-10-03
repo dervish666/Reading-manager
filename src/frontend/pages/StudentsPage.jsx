@@ -3,7 +3,7 @@
  * Manage student information and reading preferences
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -38,7 +38,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -48,6 +49,8 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { useApp } from '../contexts/AppContext';
+import SortableTableHeader from '../components/SortableTableHeader';
+import { sortData, shouldUseServerSideSorting } from '../utils/sortingUtils';
 
 function StudentsPage() {
   const navigate = useNavigate();
@@ -79,12 +82,48 @@ function StudentsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [selectedClassForImport, setSelectedClassForImport] = useState('');
 
-  // Filter students based on search term and selected class
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = !state.selectedClassFilter || student.classId === state.selectedClassFilter;
-    return matchesSearch && matchesClass;
-  });
+  // Handle sorting
+  const handleSort = async (column, direction) => {
+    const { sorting } = state;
+    
+    // Update sorting state
+    api.setSort('students', column, direction);
+    
+    // Determine if we need server-side sorting
+    const useServerSide = shouldUseServerSideSorting(students.length);
+    
+    if (useServerSide && direction) {
+      // Use server-side sorting
+      try {
+        await api.getStudentsSorted(column, direction);
+      } catch (error) {
+        console.error('Error sorting students:', error);
+      }
+    }
+    // If client-side sorting, the useMemo below will handle it
+  };
+
+  // Filter and sort students
+  const processedStudents = useMemo(() => {
+    const { sorting } = state;
+    
+    // First filter students
+    let filtered = students.filter(student => {
+      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClass = !state.selectedClassFilter || student.classId === state.selectedClassFilter;
+      return matchesSearch && matchesClass;
+    });
+    
+    // Then sort if needed (client-side)
+    if (sorting.students.column && sorting.students.direction) {
+      const useServerSide = shouldUseServerSideSorting(students.length);
+      if (!useServerSide) {
+        filtered = sortData(filtered, sorting.students.column, sorting.students.direction);
+      }
+    }
+    
+    return filtered;
+  }, [students, searchTerm, state.selectedClassFilter, state.sorting.students]);
 
   const handleCreateStudent = () => {
     setEditingStudent(null);
@@ -150,13 +189,13 @@ function StudentsPage() {
 
   const handleBulkImportOpen = () => {
     setBulkImportDialog(true);
-    setSelectedClassFilterForImport('');
+    setSelectedClassForImport('');
   };
 
   const handleBulkImportClose = () => {
     setBulkImportDialog(false);
     setBulkImportText('');
-    setSelectedClassFilterForImport('');
+    setSelectedClassForImport('');
   };
 
   const handleBulkImport = async () => {
@@ -210,7 +249,7 @@ function StudentsPage() {
       if (name) {
         students.push({
           name: name,
-          classId: state.selectedClassFilterForImport || null,
+          classId: selectedClassForImport || null,
           readingLevel: null,
           preferences: {
             favoriteGenreIds: [],
@@ -286,17 +325,53 @@ function StudentsPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Class</TableCell>
-              <TableCell>Reading Level</TableCell>
-              <TableCell>Last Read</TableCell>
+              <SortableTableHeader
+                column="name"
+                currentSort={state.sorting.students}
+                onSort={handleSort}
+              >
+                Name
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="classId"
+                currentSort={state.sorting.students}
+                onSort={handleSort}
+              >
+                Class
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="readingLevel"
+                currentSort={state.sorting.students}
+                onSort={handleSort}
+              >
+                Reading Level
+              </SortableTableHeader>
+              <SortableTableHeader
+                column="lastReadDate"
+                currentSort={state.sorting.students}
+                onSort={handleSort}
+              >
+                Last Read
+              </SortableTableHeader>
               <TableCell>Favorite Genres</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredStudents.map((student) => (
-              <TableRow key={student.id}>
+            {state.sortingLoading.students ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" gap={2}>
+                    <CircularProgress size={40} />
+                    <Typography variant="body2" color="textSecondary">
+                      Sorting students...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              processedStudents.map((student) => (
+                <TableRow key={student.id}>
                 <TableCell>
                   <Box display="flex" alignItems="center">
                     <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 32, height: 32 }}>
@@ -381,13 +456,14 @@ function StudentsPage() {
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {filteredStudents.length === 0 && (
+      {processedStudents.length === 0 && (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <SchoolIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
